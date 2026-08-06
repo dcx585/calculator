@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>T+0 计算器</title>
+<title>T+0 做T</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -14,15 +14,20 @@ body{
 }
 h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:center;letter-spacing:.04em}
 
+.dir-switch{display:flex;background:#1a1a1a;border-radius:10px;padding:3px;margin-bottom:16px}
+.dir-btn{flex:1;text-align:center;padding:10px;border-radius:8px;font-size:14px;cursor:pointer;border:none;background:transparent;color:#666;font-family:inherit;transition:all .2s}
+.dir-btn.active{background:#c9a84c;color:#000;font-weight:600}
+.dir-btn.bull.active{background:#4a9d5a}
+.dir-btn.bear.active{background:#c0392b}
+
 .row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
 .row label{width:56px;font-size:13px;color:#999;flex-shrink:0}
-.row input{
-  flex:1;padding:12px;background:#1a1a1a;border:1px solid #333;
-  border-radius:8px;color:#fff;font-size:16px;outline:none;
-  font-family:inherit;font-feature-settings:"tnum";font-variant-numeric:tabular-nums;
-}
+.row input{flex:1;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:16px;outline:none;font-family:inherit;font-feature-settings:"tnum";font-variant-numeric:tabular-nums}
 .row input:focus{border-color:#c9a84c}
 .row .unit{font-size:13px;color:#666;width:20px;text-align:right}
+
+.flow{text-align:center;font-size:13px;color:#555;margin:12px 0 16px;line-height:1.6}
+.flow span{color:#fff;font-weight:600}
 
 .divider{height:1px;background:#222;margin:16px 0}
 
@@ -37,40 +42,69 @@ h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:cente
 </style>
 </head>
 <body>
-<h2>T+0 做T计算</h2>
+<h2>T+0 做T</h2>
+
+<div class="dir-switch">
+  <button class="dir-btn bull active" onclick="setDir('bull',this)">📈 看涨 · 先买后卖</button>
+  <button class="dir-btn bear" onclick="setDir('bear',this)">📉 看跌 · 先卖后买</button>
+</div>
 
 <div class="row"><label>当前价</label><input type="number" id="price" placeholder="1.23" step="0.001" oninput="calc()"><span class="unit">元</span></div>
-<div class="row"><label>持仓</label><input type="number" id="held" placeholder="10000" step="100" oninput="calc()"><span class="unit">股</span></div>
+<div class="row"><label>目标价</label><input type="number" id="target" placeholder="1.25" step="0.001" oninput="calc()"><span class="unit">元</span></div>
 <div class="row"><label>做T量</label><input type="number" id="shares" placeholder="1000" step="100" oninput="calc()"><span class="unit">股</span></div>
-<div class="row"><label>买入价</label><input type="number" id="buy" placeholder="1.20" step="0.001" oninput="calc()"><span class="unit">元</span></div>
-<div class="row"><label>卖出价</label><input type="number" id="sell" placeholder="1.25" step="0.001" oninput="calc()"><span class="unit">元</span></div>
+<div class="row"><label>持仓</label><input type="number" id="held" placeholder="10000" step="100" oninput="calc()"><span class="unit">股</span></div>
+
+<div class="flow" id="flow">当前 <span>买入</span> → 目标 <span>卖出</span></div>
 
 <div class="divider"></div>
 
-<div class="result-row"><span class="r-label">买入成本</span><span class="r-val" id="cost">¥0</span></div>
-<div class="result-row"><span class="r-label">卖出收入</span><span class="r-val" id="revenue">¥0</span></div>
+<div class="result-row"><span class="r-label" id="action1">买入</span><span class="r-val" id="cost">¥0</span></div>
+<div class="result-row"><span class="r-label" id="action2">卖出</span><span class="r-val" id="revenue">¥0</span></div>
 <div class="result-row"><span class="r-label">差价利润</span><span class="r-val" id="profit">¥0</span></div>
-<div class="result-row"><span class="r-label">利润率</span><span class="r-val" id="rate">0%</span></div>
+<div class="result-row"><span class="r-label">每股赚</span><span class="r-val" id="perShare">¥0</span></div>
 <div class="result-row"><span class="r-label">持仓市值</span><span class="r-val" id="mv">¥0</span></div>
 
-<div class="note">输入实时更新 · 做T有风险</div>
+<div class="note">做T有风险 · 仅供参考</div>
 
 <script>
+let dir='bull'; // bull: buy first then sell; bear: sell first then buy back
+
+function setDir(d,btn){
+  dir=d;
+  document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateLabels();calc();
+}
+
+function updateLabels(){
+  if(dir==='bull'){
+    document.getElementById('flow').innerHTML='当前 <span>买入</span> → 目标 <span>卖出</span>';
+    document.getElementById('action1').textContent='买入成本';
+    document.getElementById('action2').textContent='卖出收入';
+  }else{
+    document.getElementById('flow').innerHTML='当前 <span>卖出</span> → 目标 <span>买回</span>';
+    document.getElementById('action1').textContent='卖出收入';
+    document.getElementById('action2').textContent='买回成本';
+  }
+}
+
 function calc(){
   const p=parseFloat(document.getElementById('price').value)||0;
-  const h=parseFloat(document.getElementById('held').value)||0;
+  const t=parseFloat(document.getElementById('target').value)||0;
   const s=parseFloat(document.getElementById('shares').value)||0;
-  const b=parseFloat(document.getElementById('buy').value)||0;
-  const se=parseFloat(document.getElementById('sell').value)||0;
-  const cost=s*b,rev=s*se,profit=rev-cost,prate=cost>0?(profit/cost*100).toFixed(2):'0';
-  document.getElementById('cost').textContent='¥'+cost.toFixed(2);
-  document.getElementById('revenue').textContent='¥'+rev.toFixed(2);
+  const h=parseFloat(document.getElementById('held').value)||0;
+  let a1,a2,profit;
+  if(dir==='bull'){a1=s*p;a2=s*t;profit=a2-a1}
+  else{a1=s*p;a2=s*t;profit=a1-a2}
+  document.getElementById('cost').textContent='¥'+a1.toFixed(2);
+  document.getElementById('revenue').textContent='¥'+a2.toFixed(2);
   document.getElementById('profit').textContent='¥'+profit.toFixed(2);
   document.getElementById('profit').className='r-val '+(profit>=0?'green':'red');
-  document.getElementById('rate').textContent=prate+'%';
-  document.getElementById('rate').className='r-val '+(profit>=0?'green':'red');
+  document.getElementById('perShare').textContent='¥'+(s>0?(profit/s).toFixed(3):'0');
+  document.getElementById('perShare').className='r-val '+(profit>=0?'green':'red');
   document.getElementById('mv').textContent='¥'+(h*p).toFixed(2);
 }
+updateLabels();
 </script>
 </body>
 </html>
