@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>计算器</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font:-apple-system-body,"PingFang SC","Noto Sans SC",sans-serif;
+  background:rgba(0,0,0,.92);color:#fff;
+  display:flex;flex-direction:column;
+  min-height:100dvh;user-select:none;
+  -webkit-user-select:none;
+}
+.display{
+  flex:1;display:flex;align-items:flex-end;justify-content:flex-end;
+  padding:24px 20px;font-size:48px;font-weight:300;
+  letter-spacing:-.02em;word-break:break-all;text-align:right;
+  font-feature-settings:"tnum";font-variant-numeric:tabular-nums;
+  line-height:1.1;min-height:120px;
+}
+.grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  background:rgba(255,255,255,.06);padding:10px 10px 20px;
+}
+.grid button{
+  padding:20px 0;border:none;background:rgba(255,255,255,.04);
+  color:#fff;font-size:22px;cursor:pointer;font-family:inherit;
+  transition:background .12s;border-radius:8px;margin:3px;
+  -webkit-tap-highlight-color:transparent;
+}
+.grid button:active{background:rgba(255,255,255,.15)}
+.grid button.fn{color:#a0a0a0;font-size:18px}
+.grid button.op{color:#c9a84c}
+.grid button.eq{background:#c9a84c;color:#000;font-weight:600}
+.grid button.eq:active{background:#d4b35a}
+.grid button.zero{grid-column:span 2;text-align:left;padding-left:28px}
+</style>
+</head>
+<body>
+<div class="display" id="display">0</div>
+<div class="grid">
+  <button class="fn" onclick="input('C')">C</button>
+  <button class="fn" onclick="input('±')">±</button>
+  <button class="fn" onclick="input('%')">%</button>
+  <button class="op" onclick="input('÷')">÷</button>
+  <button onclick="input('7')">7</button>
+  <button onclick="input('8')">8</button>
+  <button onclick="input('9')">9</button>
+  <button class="op" onclick="input('×')">×</button>
+  <button onclick="input('4')">4</button>
+  <button onclick="input('5')">5</button>
+  <button onclick="input('6')">6</button>
+  <button class="op" onclick="input('−')">−</button>
+  <button onclick="input('1')">1</button>
+  <button onclick="input('2')">2</button>
+  <button onclick="input('3')">3</button>
+  <button class="op" onclick="input('+')">+</button>
+  <button class="zero" onclick="input('0')">0</button>
+  <button onclick="input('.')">.</button>
+  <button class="eq" onclick="calc()">=</button>
+</div>
+<script>
+let expr='0',reset=false;
+function input(v){
+  if(v==='C'){expr='0';reset=false}
+  else if(v==='±'){expr=expr.startsWith('-')?expr.slice(1):expr==='0'?'0':'-'+expr}
+  else if(v==='%'){try{expr=String(parseFloat(evalExpr(expr))/100)}catch(e){}}
+  else{
+    if(reset&&'0123456789'.includes(v)){expr=v;reset=false}
+    else if(reset){reset=false;expr+=v}
+    else{expr=expr==='0'&&v!=='.'?v:expr+v}
+  }
+  document.getElementById('display').textContent=formatExpr(expr);
+}
+function calc(){
+  try{expr=String(evalExpr(expr));reset=true}catch(e){expr='错误'}
+  document.getElementById('display').textContent=formatExpr(expr);
+}
+function evalExpr(e){
+  return Function('"use strict";return ('+e.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')+')')();
+}
+function formatExpr(e){
+  return e.length>12?Number(e).toExponential(6):e;
+}
+</script>
+</body>
+</html>
