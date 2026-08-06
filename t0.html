@@ -129,7 +129,7 @@ function toast(msg){
 async function scanPrice(){
   toast('读取中...');
   try{
-    const resp=await fetch('/api/a11y-extract');
+    const resp=await fetch('http://127.0.0.1:8765/api/a11y-extract');
     const data=await resp.json();
     if(!data.ok){toast('读取失败：'+data.error.message);return}
     const text=data.data||'';
