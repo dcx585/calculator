@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>T+0 计算器</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font:-apple-system-body,"PingFang SC","Noto Sans SC",sans-serif;
+  background:#0d0d0d;color:#fff;
+  padding:16px;min-height:100dvh;
+  -webkit-user-select:none;user-select:none;
+}
+h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:center;letter-spacing:.04em}
+
+.row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.row label{width:56px;font-size:13px;color:#999;flex-shrink:0}
+.row input{
+  flex:1;padding:12px;background:#1a1a1a;border:1px solid #333;
+  border-radius:8px;color:#fff;font-size:16px;outline:none;
+  font-family:inherit;font-feature-settings:"tnum";font-variant-numeric:tabular-nums;
+}
+.row input:focus{border-color:#c9a84c}
+.row .unit{font-size:13px;color:#666;width:20px;text-align:right}
+
+.divider{height:1px;background:#222;margin:16px 0}
+
+.result-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1a1a1a;font-size:15px}
+.result-row:last-child{border-bottom:none}
+.result-row .r-label{color:#999}
+.result-row .r-val{font-weight:600;font-feature-settings:"tnum";font-variant-numeric:tabular-nums}
+.result-row .r-val.green{color:#4a9d5a}
+.result-row .r-val.red{color:#c0392b}
+
+.note{font-size:11px;color:#555;text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+<h2>T+0 做T计算</h2>
+
+<div class="row"><label>当前价</label><input type="number" id="price" placeholder="1.23" step="0.001" oninput="calc()"><span class="unit">元</span></div>
+<div class="row"><label>持仓</label><input type="number" id="held" placeholder="10000" step="100" oninput="calc()"><span class="unit">股</span></div>
+<div class="row"><label>做T量</label><input type="number" id="shares" placeholder="1000" step="100" oninput="calc()"><span class="unit">股</span></div>
+<div class="row"><label>买入价</label><input type="number" id="buy" placeholder="1.20" step="0.001" oninput="calc()"><span class="unit">元</span></div>
+<div class="row"><label>卖出价</label><input type="number" id="sell" placeholder="1.25" step="0.001" oninput="calc()"><span class="unit">元</span></div>
+
+<div class="divider"></div>
+
+<div class="result-row"><span class="r-label">买入成本</span><span class="r-val" id="cost">¥0</span></div>
+<div class="result-row"><span class="r-label">卖出收入</span><span class="r-val" id="revenue">¥0</span></div>
+<div class="result-row"><span class="r-label">差价利润</span><span class="r-val" id="profit">¥0</span></div>
+<div class="result-row"><span class="r-label">利润率</span><span class="r-val" id="rate">0%</span></div>
+<div class="result-row"><span class="r-label">持仓市值</span><span class="r-val" id="mv">¥0</span></div>
+
+<div class="note">输入实时更新 · 做T有风险</div>
+
+<script>
+function calc(){
+  const p=parseFloat(document.getElementById('price').value)||0;
+  const h=parseFloat(document.getElementById('held').value)||0;
+  const s=parseFloat(document.getElementById('shares').value)||0;
+  const b=parseFloat(document.getElementById('buy').value)||0;
+  const se=parseFloat(document.getElementById('sell').value)||0;
+  const cost=s*b,rev=s*se,profit=rev-cost,prate=cost>0?(profit/cost*100).toFixed(2):'0';
+  document.getElementById('cost').textContent='¥'+cost.toFixed(2);
+  document.getElementById('revenue').textContent='¥'+rev.toFixed(2);
+  document.getElementById('profit').textContent='¥'+profit.toFixed(2);
+  document.getElementById('profit').className='r-val '+(profit>=0?'green':'red');
+  document.getElementById('rate').textContent=prate+'%';
+  document.getElementById('rate').className='r-val '+(profit>=0?'green':'red');
+  document.getElementById('mv').textContent='¥'+(h*p).toFixed(2);
+}
+</script>
+</body>
+</html>
