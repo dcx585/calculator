@@ -12,13 +12,20 @@ body{
   padding:16px;min-height:100dvh;
   -webkit-user-select:none;user-select:none;
 }
-h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:center;letter-spacing:.04em}
+h2{font-size:14px;font-weight:500;color:#888;margin-bottom:12px;text-align:center;letter-spacing:.04em}
 
-.dir-switch{display:flex;background:#1a1a1a;border-radius:10px;padding:3px;margin-bottom:16px}
+.dir-switch{display:flex;background:#1a1a1a;border-radius:10px;padding:3px;margin-bottom:14px}
 .dir-btn{flex:1;text-align:center;padding:10px;border-radius:8px;font-size:14px;cursor:pointer;border:none;background:transparent;color:#666;font-family:inherit;transition:all .2s}
 .dir-btn.active{background:#c9a84c;color:#000;font-weight:600}
 .dir-btn.bull.active{background:#4a9d5a}
 .dir-btn.bear.active{background:#c0392b}
+
+.scan-bar{display:flex;gap:8px;margin-bottom:14px}
+.scan-bar button{flex:1;padding:10px;border-radius:10px;border:1px solid #333;background:#1a1a1a;color:#c9a84c;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s}
+.scan-bar button:active{background:#333}
+.scan-bar button.auto{color:#4a9d5a;border-color:#2a4a2a}
+.scan-bar button.auto.running{background:#2a4a2a;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 .row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
 .row label{width:56px;font-size:13px;color:#999;flex-shrink:0}
@@ -26,10 +33,10 @@ h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:cente
 .row input:focus{border-color:#c9a84c}
 .row .unit{font-size:13px;color:#666;width:20px;text-align:right}
 
-.flow{text-align:center;font-size:13px;color:#555;margin:12px 0 16px;line-height:1.6}
+.flow{text-align:center;font-size:13px;color:#555;margin:10px 0 14px}
 .flow span{color:#fff;font-weight:600}
 
-.divider{height:1px;background:#222;margin:16px 0}
+.divider{height:1px;background:#222;margin:14px 0}
 
 .result-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1a1a1a;font-size:15px}
 .result-row:last-child{border-bottom:none}
@@ -38,7 +45,9 @@ h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:cente
 .result-row .r-val.green{color:#4a9d5a}
 .result-row .r-val.red{color:#c0392b}
 
-.note{font-size:11px;color:#555;text-align:center;margin-top:16px}
+.note{font-size:11px;color:#555;text-align:center;margin-top:14px}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:10}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -49,7 +58,12 @@ h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:cente
   <button class="dir-btn bear" onclick="setDir('bear',this)">📉 看跌 · 先卖后买</button>
 </div>
 
-<div class="row"><label>当前价</label><input type="number" id="price" placeholder="1.23" step="0.001" oninput="calc()"><span class="unit">元</span></div>
+<div class="scan-bar">
+  <button onclick="scanPrice()">📷 读取当前价</button>
+  <button class="auto" id="autoBtn" onclick="toggleAuto()">⏱ 自动刷新</button>
+</div>
+
+<div class="row"><label>当前价</label><input type="number" id="price" placeholder="点📷读取" step="0.001" oninput="calc()"><span class="unit">元</span></div>
 <div class="row"><label>目标价</label><input type="number" id="target" placeholder="1.25" step="0.001" oninput="calc()"><span class="unit">元</span></div>
 <div class="row"><label>做T量</label><input type="number" id="shares" placeholder="1000" step="100" oninput="calc()"><span class="unit">股</span></div>
 <div class="row"><label>持仓</label><input type="number" id="held" placeholder="10000" step="100" oninput="calc()"><span class="unit">股</span></div>
@@ -58,16 +72,17 @@ h2{font-size:14px;font-weight:500;color:#888;margin-bottom:16px;text-align:cente
 
 <div class="divider"></div>
 
-<div class="result-row"><span class="r-label" id="action1">买入</span><span class="r-val" id="cost">¥0</span></div>
-<div class="result-row"><span class="r-label" id="action2">卖出</span><span class="r-val" id="revenue">¥0</span></div>
+<div class="result-row"><span class="r-label" id="action1">买入成本</span><span class="r-val" id="cost">¥0</span></div>
+<div class="result-row"><span class="r-label" id="action2">卖出收入</span><span class="r-val" id="revenue">¥0</span></div>
 <div class="result-row"><span class="r-label">差价利润</span><span class="r-val" id="profit">¥0</span></div>
 <div class="result-row"><span class="r-label">每股赚</span><span class="r-val" id="perShare">¥0</span></div>
 <div class="result-row"><span class="r-label">持仓市值</span><span class="r-val" id="mv">¥0</span></div>
 
-<div class="note">做T有风险 · 仅供参考</div>
+<div class="note">切到券商APP → 回来点📷读取当前价</div>
+<div class="toast" id="toast"></div>
 
 <script>
-let dir='bull'; // bull: buy first then sell; bear: sell first then buy back
+let dir='bull',autoTimer=null;
 
 function setDir(d,btn){
   dir=d;
@@ -104,6 +119,39 @@ function calc(){
   document.getElementById('perShare').className='r-val '+(profit>=0?'green':'red');
   document.getElementById('mv').textContent='¥'+(h*p).toFixed(2);
 }
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+async function scanPrice(){
+  toast('读取中...');
+  try{
+    const resp=await fetch('/api/a11y-extract');
+    const data=await resp.json();
+    if(!data.ok){toast('读取失败：'+data.error.message);return}
+    const text=data.data||'';
+    // Find all numbers with decimal points (price-like)
+    const matches=text.match(/\d+\.\d{2,3}/g)||text.match(/\d+\.?\d*/g)||[];
+    if(matches.length===0){toast('未发现价格数字');return}
+    // Filter: prefer numbers that look like prices (1-9999 range, decimal)
+    const prices=matches.map(Number).filter(n=>n>0.01&&n<10000);
+    if(prices.length===0){toast('未发现有效价格');return}
+    document.getElementById('price').value=prices[0];
+    calc();toast('已读取：'+prices[0]);
+  }catch(e){toast('读取出错')}
+}
+
+function toggleAuto(){
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null;document.getElementById('autoBtn').classList.remove('running');toast('已停止自动刷新');return}
+  document.getElementById('autoBtn').classList.add('running');
+  toast('每5秒自动刷新');
+  scanPrice();
+  autoTimer=setInterval(scanPrice,5000);
+}
+
 updateLabels();
 </script>
 </body>
